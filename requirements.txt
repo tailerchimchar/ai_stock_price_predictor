@@ -2,3 +2,6 @@ yfinance
 pydantic
 statsmodels
 pytest
+ta
+pandas
+numpy

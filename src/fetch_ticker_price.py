@@ -5,7 +5,6 @@ from .data_source import DataSource
 from .normalization import normalize_candles
 from .caching import Cache
 
-
 class StockFetcher:
     """Main interface for stock data with optional caching."""
 
