@@ -3,7 +3,7 @@ from pathlib import Path
 
 # Add parent directory to path so we can import scripts
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from scripts.fetch_ticker_price import StockFetcher
+from fetch_ticker_price import StockFetcher
 
 def main():
   print("Hello, AI Stock Price Predictor!")

@@ -1,2 +1,4 @@
 yfinance
 pydantic
+statsmodels
+pytest
