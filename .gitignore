@@ -1,0 +1,7 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+.venv/*
+
+# to activate venv, .venv\Scripts\activate.bat
+
+*.pyc
+__pycache__/
