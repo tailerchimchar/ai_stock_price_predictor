@@ -11,8 +11,8 @@ from src.signals import StockSignals
 def main():
   parser = argparse.ArgumentParser(description='AI Stock Price Predictor')
   parser.add_argument('ticker', nargs='?', help='Stock ticker (e.g., SPY)')
-  parser.add_argument('period', nargs='?', default='1wk', 
-    choices=['1d', '1wk', '1mo', '3mo', '6mo', '1y'])
+  parser.add_argument('period', nargs='?', default='2wk', help='Historical data period',
+    choices=['1d', '1wk', '2wk', '1mo', '3mo', '6mo', '1y'])
   args = parser.parse_args()
   
   # Get ticker and period (CLI args or interactive)
@@ -20,7 +20,7 @@ def main():
   ticker = ticker.upper()
   
   if not args.ticker:
-    period = input("Period (1d/1wk/1mo/3mo/6mo/1y) [1wk]: ").strip() or '1wk'
+    period = input("Period (1d/1wk/2wk/1mo/3mo/6mo/1y) [2wk]: ").strip() or '2wk'
   else:
     period = args.period
   
@@ -39,7 +39,8 @@ def main():
   label, score, evidence = bias_scorer.full_bias_assessment()
   
   print(f"\nFull bias assessment of {ticker}: \nLabel:{label} \n(score: {score:.2f})\n")
-  print(f"Price went from {computed_signals['first_close']} to {computed_signals['last_close']} in the time period {period}.\n")
+  print(f"Price went from {computed_signals['first_close']} to {computed_signals['last_close']} in the time period {period}.")
+  print(f"Period High: {computed_signals['period_high']} and Period Low: {computed_signals['period_low']}")
   print(f"Total Return %: {((computed_signals['last_close'] / computed_signals['first_close'] - 1)*100):.2f}%")
   print("Evidence:")
   for key, value in evidence.items():

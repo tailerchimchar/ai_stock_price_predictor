@@ -25,7 +25,9 @@ class StockSignals():
       'adx': self._calculate_adx(),
       'first_close': float(f"{self.history['close'].iloc[0]:.2f}"),
       'last_close': float(f"{self.history['close'].iloc[-1]:.2f}"),
-      'window': len(self.history)
+      'window': len(self.history),
+      'period_high': float(f"{self.history['high'].max():.2f}"),
+      'period_low': float(f"{self.history['low'].min():.2f}"),
     }
     return signals
   
