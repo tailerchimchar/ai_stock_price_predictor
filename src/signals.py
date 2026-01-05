@@ -20,12 +20,12 @@ class StockSignals():
       'ma_100': float(f"{self.moving_average(window=100).iloc[-1]:.2f}"),
       'ma_200': float(f"{self.moving_average(window=200).iloc[-1]:.2f}"),
       'percent_price_change': self.get_last_five_days_percent_change(),
+      'price_change': float(f"{self.history['close'].iloc[0] - self.history['close'].iloc[-1]:.2f}"),
       'rsi': self._calculate_rsi(),
       #'volatility': self._calculate_volatility(),
       'adx': self._calculate_adx(),
       'first_close': float(f"{self.history['close'].iloc[0]:.2f}"),
       'last_close': float(f"{self.history['close'].iloc[-1]:.2f}"),
-      'window': len(self.history),
       'period_high': float(f"{self.history['high'].max():.2f}"),
       'period_low': float(f"{self.history['low'].min():.2f}"),
     }

@@ -8,7 +8,6 @@ from .logger import get_logger
 
 logger = get_logger(__name__)
 
-
 def normalize_candles(df: pd.DataFrame, validate: bool = True) -> pd.DataFrame:
     """
     Normalize yfinance data to production-ready format.
