@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import json
 import sys
 from pathlib import Path
-from stock_response_model import StockResponseModel
+from app.stock_response_model import StockResponseModel
 
 # Ensure project root is on sys.path for src imports
 ROOT = Path(__file__).resolve().parent.parent
