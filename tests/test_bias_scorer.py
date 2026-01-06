@@ -24,8 +24,8 @@ class TestBiasScorer:
     
     assert label == 'bullish'
     assert score >= 0.7
-    assert 'RSI 25.0 oversold' in evidence['rsi']
-    assert 'strong uptrend' in evidence['adx']
+    assert 'RSI 25.0 oversold' in evidence['rsi'].message
+    assert 'strong uptrend' in evidence['adx'].message
   
   def test_strongly_bearish_signal(self):
     """Test a clearly bearish scenario."""
@@ -42,8 +42,8 @@ class TestBiasScorer:
     
     assert label == 'bearish'
     assert score <= 0.3
-    assert 'RSI 75.0 overbought' in evidence['rsi']
-    assert 'strong downtrend' in evidence['adx']
+    assert 'RSI 75.0 overbought' in evidence['rsi'].message
+    assert 'strong downtrend' in evidence['adx'].message
   
   def test_neutral_signal_mixed_indicators(self):
     """Test a neutral scenario with mixed signals."""
@@ -60,7 +60,7 @@ class TestBiasScorer:
     
     assert label == 'neutral'
     assert 0.3 < score < 0.7
-    assert 'ADX not available' in evidence['adx']
+    assert 'ADX not available' in evidence['adx'].message
 
   def test_short_window_outputs_no_nan(self):
     """Short window/empty indicators should surface availability messages, no NaN."""
@@ -81,12 +81,12 @@ class TestBiasScorer:
     assert label == 'neutral'
     for v in evidence.values():
       assert 'nan' not in str(v).lower()
-    assert evidence['rsi'].startswith('RSI unavailable')
-    assert evidence['percent_price_change'].startswith('5 day return unavailable')
-    assert evidence['ma_short_term'] == 'MA5/MA20 unavailable'
-    assert evidence['ma_long_term'] == 'MA100/MA200 unavailable'
-    assert evidence['close_vs_sma20'] == 'Close/SMA20 unavailable'
-    assert 'ADX not available' in evidence['adx']
+    assert evidence['rsi'].message.startswith('RSI unavailable')
+    assert evidence['percent_price_change_5_days'].message.startswith('Price change unavailable')
+    assert evidence['ma_short_term'].message == 'MA5/MA20 unavailable'
+    assert evidence['ma_long_term'].message == 'MA100/MA200 unavailable'
+    assert evidence['close_vs_sma20'].message == 'Close/SMA20 unavailable'
+    assert 'ADX not available' in evidence['adx'].message
 
   def test_decimal_formatting_and_no_nan(self):
     """Check evidence formatting rounds to one decimal and stays clean."""
@@ -105,11 +105,11 @@ class TestBiasScorer:
     label, score, evidence = scorer.full_bias_assessment()
 
     assert label == 'bullish'
-    assert 'RSI 50.0 neutral' == evidence['rsi']
-    assert evidence['percent_price_change'].startswith('5 day return: 2.10')
-    assert 'Ma5 10.1 above Ma20 10.0' in evidence['ma_short_term']
-    assert 'Ma100 9.8 above Ma200 9.7' in evidence['ma_long_term']
-    assert 'Close 10.2 above SMA20 10.0' in evidence['close_vs_sma20']
-    assert 'strong uptrend' in evidence['adx']
+    assert 'RSI 50.0 neutral' == evidence['rsi'].message
+    assert evidence['percent_price_change_5_days'].message.startswith('Price change 2.10%')
+    assert 'Ma5 10.1 above Ma20 10.0' in evidence['ma_short_term'].message
+    assert 'Ma100 9.8 above Ma200 9.7' in evidence['ma_long_term'].message
+    assert 'Close 10.2 above SMA20 10.0' in evidence['close_vs_sma20'].message
+    assert 'strong uptrend' in evidence['adx'].message
     for v in evidence.values():
       assert 'nan' not in str(v).lower()

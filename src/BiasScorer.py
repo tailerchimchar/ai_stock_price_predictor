@@ -138,9 +138,9 @@ class BiasScorer:
       return 'slightly bullish'
     elif score < 0.55 and score >= 0.45:
       return 'neutral'
-    elif score < 0.45 and score >= 0.2:
+    elif score < 0.45 and score >= 0.25:
       return 'slightly bearish'
-    else: # score < 0.2
+    else: # score < 0.25
       return 'bearish'
     
   def full_bias_assessment(self) -> tuple[str, float, dict]:
