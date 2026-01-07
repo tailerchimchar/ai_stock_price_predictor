@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -42,7 +43,10 @@ class AnalyzeRequest(BaseModel):
 app = FastAPI(title="Stock Data API", version="1.0.0")
 
 origins = [
-  "http://localhost:5173"
+  "http://localhost:5173",
+  "http://localhost:3000",  # Next.js dev server
+  "https://ai-stock-price-predictor-7pmv.onrender.com",  # Production API
+  os.getenv("FRONTEND_ORIGIN", ""),  # Your deployed frontend URL
 ]
 
 app.add_middleware(
@@ -52,6 +56,10 @@ app.add_middleware(
   allow_methods=["*"],
   allow_headers=["*"],
 )
+
+@app.get("/")
+def root():
+  return {"message": f"Welcome to the Stock Data API. Visit /docs for API documentation."}
 
 @app.get("/health")
 async def health():
@@ -101,12 +109,11 @@ async def analyze(req: AnalyzeRequest):
 
 
 @app.get("/api/analyses")
-async def analyses(ticker: str, limit: int = Query(50, gt=0, lt=1000)):
+async def analyses(ticker: str, limit: int = Query(50, gt=0, le=1000)):
   try:
     return list_analyses(get_db(), ticker=ticker, limit=limit)
   except RuntimeError as exc:
     raise HTTPException(status_code=400, detail=str(exc))
-
 
 @app.get("/api/analyses/latest")
 async def latest_analysis(ticker: str, period: Optional[str] = None):
@@ -114,7 +121,6 @@ async def latest_analysis(ticker: str, period: Optional[str] = None):
     return get_latest_analysis(get_db(), ticker=ticker, period=period)
   except RuntimeError as exc:
     raise HTTPException(status_code=400, detail=str(exc))
-
 
 @app.get("/api/stocks/{ticker}/historical_data/{period}", response_model=StockResponseModel)
 async def read_csv(ticker: str, period: str, limit: int = Query(500, gt=0, lt=10000)):
@@ -129,7 +135,6 @@ async def get_highs_lows(ticker: str, period: str):
     return data
   except FileNotFoundError:
     raise HTTPException(status_code=404, detail="Price summary not found")
-
 
 @app.get("/api/stocks/{ticker}/bias_assessments/{period}")
 async def get_bias_assessment(ticker: str, period: str):
