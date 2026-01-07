@@ -1,13 +1,18 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { fetchAnalyses, runAnalyze } from '@/lib/api';
 import styles from './page.module.css';
 
 const PERIODS = ['1wk','2wk', '1mo', '2mo', '3mo', '6mo', '1y', '2y', '5y'];
 
 export default function AnalysesPage() {
+  const router = useRouter();
+  const { user, session, loading: authLoading, signOut } = useAuth();
+  
   const [ticker, setTicker] = useState('AAPL');
   const [period, setPeriod] = useState('3mo');
   const [limit, setLimit] = useState(5);
@@ -18,55 +23,91 @@ export default function AnalysesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/auth');
+    }
+  }, [user, authLoading, router]);
+
   const clearError = useCallback(() => setError(null), []);
 
   const handleFetchRecent = useCallback(async () => {
+    console.log('Fetch Recent - session:', session);
+    console.log('Access token:', session?.access_token);
+    if (!session) {
+      setError('No session available');
+      return;
+    }
     clearError();
     setLoading(true);
     try {
-      const data = await fetchAnalyses(ticker, limit);
+      console.log('Fetching analyses for:', ticker);
+      const data = await fetchAnalyses(ticker, limit, session.access_token);
       setAnalyses(data || []);
     } catch (err) {
+      console.error('Fetch error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [ticker, limit, clearError]);
+  }, [ticker, limit, session, clearError]);
 
   const handleFetchAll = useCallback(async () => {
+    if (!session) return;
     clearError();
     setLoading(true);
     try {
-      const data = await fetchAnalyses(ticker, 1000);
+      const data = await fetchAnalyses(ticker, 1000, session.access_token);
       setAnalyses(data || []);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [ticker, clearError]);
+  }, [ticker, session, clearError]);
 
   const handleRunAnalyze = useCallback(async () => {
+    if (!session) return;
     clearError();
     setLoading(true);
     try {
-      const result = await runAnalyze(ticker, period, true);
+      const result = await runAnalyze(ticker, period, true, session.access_token);
       setCurrentAnalysis(result);
       // Refresh the recent analyses list
-      const data = await fetchAnalyses(ticker, limit);
+      const data = await fetchAnalyses(ticker, limit, session.access_token);
       setAnalyses(data || []);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [ticker, period, limit, clearError]);
+  }, [ticker, period, limit, session, clearError]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/auth');
+  };
+
+  if (authLoading) {
+    return <div className={styles.container}>Loading...</div>;
+  }
+
+  if (!user) {
+    return null; // Will redirect
+  }
 
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <h1>Stock Analysis</h1>
-        <Link href="/" className={styles.homeLink}>← Home</Link>
+        <div>
+          <h1>Stock Analysis</h1>
+          <p className={styles.userInfo}>Logged in as: {user.email}</p>
+        </div>
+        <div className={styles.headerActions}>
+          <Link href="/" className={styles.homeLink}>← Home</Link>
+          <button onClick={handleSignOut} className={styles.signOutBtn}>Sign Out</button>
+        </div>
       </header>
 
       {error && (

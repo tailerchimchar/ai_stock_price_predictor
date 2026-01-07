@@ -20,6 +20,18 @@
   color: #111827;
 }
 
+.userInfo {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.headerActions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
 .homeLink {
   color: #3b82f6;
   text-decoration: none;
@@ -29,6 +41,21 @@
 
 .homeLink:hover {
   color: #1d4ed8;
+}
+
+.signOutBtn {
+  padding: 0.5rem 1rem;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.signOutBtn:hover {
+  background-color: #dc2626;
 }
 
 /* Error Banner */
@@ -154,14 +181,7 @@
 }
 
 .btnPrimary {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 0.375rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: inherit;
+  composes: btn;
   background-color: #3b82f6;
   color: white;
 }
@@ -171,14 +191,7 @@
 }
 
 .btnSecondary {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 0.375rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: inherit;
+  composes: btn;
   background-color: #6b7280;
   color: white;
 }
@@ -188,14 +201,7 @@
 }
 
 .btnSuccess {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 0.375rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: inherit;
+  composes: btn;
   background-color: #10b981;
   color: white;
 }

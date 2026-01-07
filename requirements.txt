@@ -11,3 +11,6 @@ sqlalchemy
 asyncpg
 python-dotenv
 supabase
+python-jose
+concurrently
+httpx

@@ -1,13 +1,20 @@
 import os
+import datetime
 from typing import Optional
-from fastapi import FastAPI, HTTPException, Query
+from pathlib import Path
+
+# Load environment variables FIRST, before any other imports
+from dotenv import load_dotenv
+load_dotenv()
+
+from fastapi import FastAPI, HTTPException, Query, Depends
 from pydantic import BaseModel, Field
 import pandas as pd
 from fastapi.middleware.cors import CORSMiddleware
 import json
 import sys
-from pathlib import Path
 from app.stock_response_model import StockResponseModel
+from app.auth import get_current_user, get_optional_user
 
 # Ensure project root is on sys.path for src imports
 ROOT = Path(__file__).resolve().parent.parent
@@ -46,16 +53,20 @@ origins = [
   "http://localhost:5173",
   "http://localhost:3000",  # Next.js dev server
   "https://ai-stock-price-predictor-7pmv.onrender.com",  # Production API
-  os.getenv("FRONTEND_ORIGIN", ""),  # Your deployed frontend URL
 ]
+
+# Append deployed frontend URL only if present
+_frontend_origin = os.getenv("FRONTEND_ORIGIN")
+if _frontend_origin:
+  origins.append(_frontend_origin)
 
 app.add_middleware(
   CORSMiddleware,
   allow_origins=origins,
-  allow_origin_regex=r"https://.*\.vercel\.app",
-  allow_credentials=True,
-  allow_methods=["*"],
-  allow_headers=["*"],
+  allow_origin_regex=r"https://.*\.vercel\.app|http://(localhost|127\.0\.0\.1|10\.(?:\d{1,3}\.){2}\d{1,3}|192\.168\.(?:\d{1,3})\.\d{1,3}|172\.(?:1[6-9]|2[0-9]|3[0-1])\.(?:\d{1,3})\.\d{1,3})(?::\d{1,5})?",
+  allow_credentials=False,  # Using Bearer tokens, not cookies
+  allow_methods=["GET", "POST", "OPTIONS"],
+  allow_headers=["authorization", "content-type"],
 )
 
 @app.get("/")
@@ -71,15 +82,20 @@ async def health():
 
 
 @app.post("/api/analyze", response_model=StockResponseModel)
-async def analyze(req: AnalyzeRequest):
-  """Analyze a ticker/period; optionally store the result when store=True."""
+async def analyze(req: AnalyzeRequest, user_id: str = Depends(get_optional_user)):
+  """
+  Analyze a ticker/period; optionally store the result when store=True.
+  Auth is optional: analysis runs without auth, but storing requires authentication.
+  """
   try:
+    request_ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
     result = analyze_ticker(
       ticker=req.ticker,
       period=req.period,
       include_history=req.include_history,
       history_limit=req.history_limit,
     )
+    result["timestamp"] = request_ts
   except FileNotFoundError as exc:
     raise HTTPException(status_code=404, detail=str(exc))
   except ValueError as exc:
@@ -91,18 +107,24 @@ async def analyze(req: AnalyzeRequest):
     bias_assessment["evidence"] = list(bias_assessment["evidence"].values())
 
   if req.store:
+    if not user_id:
+      raise HTTPException(
+        status_code=401,
+        detail="Authentication required to store analyses"
+      )
+    
     payload = {
       "ticker": req.ticker,
       "period": req.period,
+      "as_of": result.get("as_of"),
       "label": bias_assessment.get("label"),
       "score": bias_assessment.get("score"),
       "current_price": result.get("current_price"),
       "price_summary": result.get("price_summary", {}),
-      "bias_assessment": dict(bias_assessment),  # Convert to dict if needed
-      # "evidence": list(bias_assessment.get("evidence", {}).values())  # Convert evidence to list
+      "bias_assessment": dict(bias_assessment),
     }
     try:
-      insert_analysis(get_db(), result=payload)
+      insert_analysis(get_db(), result=payload, user_id=user_id)
     except RuntimeError as exc:
       raise HTTPException(status_code=400, detail=str(exc))
 
@@ -110,16 +132,18 @@ async def analyze(req: AnalyzeRequest):
 
 
 @app.get("/api/analyses")
-async def analyses(ticker: str, limit: int = Query(50, gt=0, le=1000)):
+async def analyses(ticker: str, limit: int = Query(50, gt=0, le=1000), user_id: str = Depends(get_current_user)):
+  """Get stored analyses for a ticker. Requires authentication."""
   try:
-    return list_analyses(get_db(), ticker=ticker, limit=limit)
+    return list_analyses(get_db(), ticker=ticker, user_id=user_id, limit=limit)
   except RuntimeError as exc:
     raise HTTPException(status_code=400, detail=str(exc))
 
 @app.get("/api/analyses/latest")
-async def latest_analysis(ticker: str, period: Optional[str] = None):
+async def latest_analysis(ticker: str, period: Optional[str] = None, user_id: str = Depends(get_current_user)):
+  """Get latest analysis for a ticker. Requires authentication."""
   try:
-    return get_latest_analysis(get_db(), ticker=ticker, period=period)
+    return get_latest_analysis(get_db(), ticker=ticker, user_id=user_id, period=period)
   except RuntimeError as exc:
     raise HTTPException(status_code=400, detail=str(exc))
 
