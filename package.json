@@ -1,0 +1,29 @@
+{
+  "name": "ai_stock_price_predictor",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "dev:web": "npm --prefix web run dev",
+    "dev:api": ".\\.venv\\Scripts\\python.exe -m uvicorn app.main:app --reload --port 8000",
+    "dev": "concurrently -k -n WEB,API -c auto \"npm run dev:web\" \"npm run dev:api\""
+    
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tailerchimchar/ai_stock_price_predictor.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tailerchimchar/ai_stock_price_predictor/issues"
+  },
+  "homepage": "https://github.com/tailerchimchar/ai_stock_price_predictor#readme",
+  "description": "",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

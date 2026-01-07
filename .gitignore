@@ -14,3 +14,6 @@ price_summaries/
 
 # .env
 .env
+
+node_modules/
+/web/.env.local
