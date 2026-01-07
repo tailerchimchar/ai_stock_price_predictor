@@ -1,5 +1,5 @@
 import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import List, Optional, Literal, Annotated
 from pydantic import Field
 
@@ -29,7 +29,7 @@ class StockResponseModel(BaseModel):
   """Pydantic model for stock data response."""
   ticker: str
   period: str
-  as_of: datetime.datetime  # ISO formatted datetime string
+  as_of: Optional[datetime.datetime] = None  # ISO formatted datetime string
   current_price: float
   bias_assessment: BiasAssessmentModel  # Contains label, score, and evidence
   price_summary: PriceSummaryModel  # Contains price metrics and statistics
@@ -37,3 +37,10 @@ class StockResponseModel(BaseModel):
   financials: Optional[dict] = None  # Financial statements as dict
   income_statements: Optional[dict] = None  # Income statements as dict
   balance_sheets: Optional[dict] = None  # Balance sheets as dict
+
+  @field_validator("as_of", mode="before")
+  @classmethod
+  def normalize_as_of(cls, v):
+      if v in (None, ""):
+          return None
+      return v

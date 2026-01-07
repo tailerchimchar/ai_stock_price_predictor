@@ -200,7 +200,11 @@ function AnalysisCard({ analysis }) {
         </div>
         <div className={styles.priceRow}>
           <span className={styles.label}>As Of:</span>
-          <span>{new Date(analysis.as_of).toLocaleDateString()}</span>
+          <span>
+            {analysis.as_of && !isNaN(new Date(analysis.as_of).getTime())
+              ? new Date(analysis.as_of).toLocaleDateString()
+              : 'Unavailable'}
+          </span>
         </div>
       </div>
 
