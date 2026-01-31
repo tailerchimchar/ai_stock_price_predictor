@@ -28,9 +28,43 @@ def _store_price_bars_if_enabled(ticker: str, hist_full: pd.DataFrame) -> None:
         pass  # Do not break analyze if DB or env is missing
 
 
+def _signals_from_feature_bar(features: dict, hist_full: pd.DataFrame) -> dict:
+    """Build signals dict from feature_bars row features + price context from hist_full."""
+    if hist_full is None or hist_full.empty or "close" not in hist_full.columns:
+        return {}
+    close = hist_full["close"]
+    last_close = float(close.iloc[-1])
+    first_close = float(close.iloc[0])
+    period_high = float(hist_full["high"].max()) if "high" in hist_full.columns else last_close
+    period_low = float(hist_full["low"].min()) if "low" in hist_full.columns else last_close
+    percent_price_change = (last_close / first_close - 1) if first_close else 0.0
+    if len(hist_full) >= 6:
+        percent_price_change = (last_close / float(close.iloc[-6]) - 1)
+    signals = {
+        "rsi": features.get("rsi_14"),
+        "ma_5": features.get("sma_5"),
+        "ma_20": features.get("sma_20"),
+        "ma_100": features.get("sma_100"),
+        "ma_200": features.get("sma_200"),
+        "adx": features.get("adx_14"),
+        "atr_14": features.get("atr_14"),
+        "bbands_upper": features.get("bbands_upper"),
+        "bbands_lower": features.get("bbands_lower"),
+        "bbands_20_2": features.get("bbands_20_2"),
+        "macd_12_26_9": features.get("macd_12_26_9"),
+        "last_close": last_close,
+        "first_close": first_close,
+        "period_high": period_high,
+        "period_low": period_low,
+        "percent_price_change": percent_price_change,
+        "price_change": (last_close - first_close) / first_close * 100 if first_close else 0,
+    }
+    return signals
+
+
 def _audit_score_if_enabled(version: str, ticker: str, period: str, signals: dict, score: float, label: str) -> None:
-    """If v2 and SCORE_AUDIT_LOG is set and DB available, append one row to score_audit_log."""
-    if version != "v2" or not os.getenv("SCORE_AUDIT_LOG"):
+    """If v2/v3 and SCORE_AUDIT_LOG is set and DB available, append one row to score_audit_log."""
+    if version not in ("v2", "v3") or not os.getenv("SCORE_AUDIT_LOG"):
         return
     try:
         from src.db.database import get_db
@@ -63,7 +97,7 @@ def analyze(ticker: str, period: str = "2wk") -> dict:
     """Return aggregated analysis for a ticker/period without side effects."""
     ticker = ticker.upper()
     version = os.getenv("BIAS_SCORER_VERSION", "v1").strip().lower()
-    if version not in ("v1", "v2"):
+    if version not in ("v1", "v2", "v3"):
         version = "v1"
 
     fetcher = StockFetcher(ticker_symbol=ticker)
@@ -80,7 +114,21 @@ def analyze(ticker: str, period: str = "2wk") -> dict:
         ts = pd.to_datetime(hist_full["timestamp"].max())
         as_of = ts.isoformat() if not pd.isna(ts) else None
 
-    signals = StockSignals(hist_full).compute_signals()
+    # v3: prefer feature_bars when available; else compute from history
+    signals = None
+    if version == "v3":
+        try:
+            from src.db.database import get_db
+            from src.db.feature_bars_repo import get_latest_feature_bars
+
+            rows = get_latest_feature_bars(get_db(), ticker, "1d", limit=1)
+            if rows and rows[0].get("features"):
+                signals = _signals_from_feature_bar(rows[0]["features"], hist_full)
+        except Exception:
+            pass
+    if signals is None:
+        signals = StockSignals(hist_full).compute_signals()
+
     ScorerClass = get_scorer(version)
     bias_scorer = ScorerClass(signals)
     label, score, evidence = bias_scorer.full_bias_assessment()

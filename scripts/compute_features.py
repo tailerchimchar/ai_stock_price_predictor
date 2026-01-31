@@ -15,8 +15,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
-import re
+import math
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
@@ -106,7 +105,9 @@ def feature_df_to_rows(
     timeframe: str,
     metadata: Dict[str, Any],
 ) -> List[Dict[str, Any]]:
-    """Convert feature DataFrame to list of dicts for feature_bars upsert."""
+    """Convert feature DataFrame to list of dicts for feature_bars upsert.
+    Each row has ticker, timeframe, timestamp, computed_at, feature_metadata, and features (jsonb).
+    """
     if feature_df.empty or "timestamp" not in feature_df.columns:
         return []
     rows = []
@@ -115,17 +116,19 @@ def feature_df_to_rows(
         ts = r["timestamp"]
         if hasattr(ts, "isoformat"):
             ts = ts.isoformat()
+        features = {}
+        for col in feat_cols:
+            val = r.get(col)
+            if val is not None and not (isinstance(val, float) and math.isnan(val)):
+                features[col] = float(val)
         row = {
             "ticker": ticker,
             "timeframe": timeframe,
             "timestamp": ts,
             "computed_at": pd.Timestamp.utcnow().isoformat(),
             "feature_metadata": metadata,
+            "features": features,
         }
-        for col in feat_cols:
-            val = r.get(col)
-            if pd.notna(val):
-                row[col] = float(val)
         rows.append(row)
     return rows
 
