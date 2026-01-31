@@ -50,7 +50,7 @@ def normalize_candles(df: pd.DataFrame, validate: bool = True) -> pd.DataFrame:
         'Volume': 'volume',
     })
     
-    # Step 4: Validate OHLCV
+    # Step 4: Validate OHLCV (if validate=True, raises on failure; if False, invalid rows are left for caller to filter)
     if validate:
         _validate_ohlcv(df)
     
