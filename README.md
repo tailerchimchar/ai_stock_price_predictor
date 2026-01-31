@@ -2,6 +2,81 @@
 
 Backend API and web app for stock analysis and price prediction.
 
+## Running locally
+
+### 1. Backend (FastAPI)
+
+From the **project root**, with your virtual environment activated:
+
+```bash
+uvicorn app.main:app --reload --port 8000
+```
+
+Or with Python explicitly:
+
+```bash
+python -m uvicorn app.main:app --reload --port 8000
+```
+
+- API: **http://localhost:8000**
+- Docs: **http://localhost:8000/docs**
+
+Backend expects a `.env` in the project root with `SUPABASE_URL`, `SUPABASE_KEY`, and `SUPABASE_JWT_SECRET` (see [AUTH_SETUP.md](AUTH_SETUP.md)).
+
+### 2. Frontend (Next.js)
+
+In a **second terminal**:
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+- App: **http://localhost:3000**
+
+Create `web/.env.development.local` with:
+
+- `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (see [AUTH_SETUP.md](AUTH_SETUP.md)).
+
+### 3. Run both at once (optional)
+
+From the project root (with venv activated and `npm install` already run in `web/`):
+
+```bash
+npm run dev
+```
+
+This runs the API and the web app together via `concurrently`.
+
+---
+
+### Testing sign-up and users
+
+1. **Start backend and frontend** (see above), then open **http://localhost:3000/auth**.
+
+2. **Sign up a user**
+   - Click the link so the form is in **Sign Up** mode (or use the toggle).
+   - Enter any **email** and a **password** (min 6 characters).
+   - Click **Sign Up**.
+   - Supabase sends a confirmation email; open the link to confirm (unless you turned off “Confirm email” in Supabase Dashboard → Authentication → Providers → Email).
+
+3. **Sign in**
+   - On the same auth page, switch to **Sign In**, enter the same email and password, then **Sign In**. You should be redirected to `/analyses`.
+
+4. **Test with multiple users**
+   - Sign out, then sign up with a **different email** and password.
+   - Sign in as User A, run an analysis and store it.
+   - Sign out, sign in as User B; you should not see User A’s analyses. Run and store an analysis as User B.
+   - Sign back in as User A; you should only see User A’s data (multi-user isolation).
+
+**Quick test users:** use any emails you control (e.g. `test1@example.com`, `test2@example.com`) and any password ≥ 6 characters. No seed script is required; sign-up and sign-in are done from the auth page.
+
+To **skip email confirmation** in development: Supabase Dashboard → Authentication → Providers → Email → disable “Confirm email”. Then you can sign in immediately after sign-up without opening the confirmation link.
+
+---
+
 ## Testing
 
 ### Prerequisites
