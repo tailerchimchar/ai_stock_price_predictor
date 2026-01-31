@@ -161,3 +161,40 @@ Or from `web/`:
 cd web
 npm run lint
 ```
+
+---
+
+## Data pipeline (audit, cleanup, features)
+
+The repo includes a **data quality and feature pipeline** you can run locally or in a container/scheduled job. See [docs/DATA_PIPELINE_DISCOVERY.md](docs/DATA_PIPELINE_DISCOVERY.md) for schema, issues, and migration plan.
+
+### Prerequisites
+
+- Run migrations in Supabase SQL Editor (see `migrations/`):
+  - **003_create_price_bars.sql** – OHLCV table `price_bars` (ticker, timeframe, timestamp)
+  - **004_create_feature_bars.sql** – wide feature table `feature_bars`
+- `.env` with `SUPABASE_URL` and `SUPABASE_KEY` for cleanup and compute_features (when writing to DB)
+
+### Commands (from project root)
+
+| Command | Description |
+|--------|--------------|
+| `python -m scripts.audit_data --ticker HOOG` | Read-only audit: scan CSV dir for ticker, report duplicates, gaps, OHLC invalids, timezone, spikes |
+| `python -m scripts.audit_data --csv-dir app/historical_data` | Audit all tickers in directory |
+| `python -m scripts.audit_data --ticker HOOG -v` | Audit with per-file issue details |
+| `python -m scripts.cleanup_data --ticker HOOG` | Normalize, dedupe, upsert OHLCV to `price_bars` (idempotent). Uses yfinance if no `--csv-dir` |
+| `python -m scripts.cleanup_data --ticker HOOG --csv-dir app/historical_data` | Cleanup from CSV files |
+| `python -m scripts.cleanup_data --ticker HOOG --dry-run` | No DB write; print row count |
+| `python -m scripts.compute_features --ticker HOOG --timeframe 1d` | Compute indicators (RSI, SMA, ATR, ADX, etc.) with 2y lookback, upsert to `feature_bars` |
+| `python -m scripts.compute_features --ticker HOOG --csv-dir app/historical_data` | Compute from CSV bars |
+| `python -m scripts.compute_features --ticker HOOG --dry-run` | No DB write; print row count |
+
+### Logs
+
+Scripts log to stdout. Use `-v` on audit for per-file details.
+
+### Production / scheduled job
+
+- Run migrations once in Supabase.
+- Schedule cleanup and compute_features (e.g. daily) for desired tickers; same commands, ensure `SUPABASE_URL` and `SUPABASE_KEY` are set in the environment.
+- Re-running cleanup or compute_features is **idempotent**: same input produces the same DB state.
