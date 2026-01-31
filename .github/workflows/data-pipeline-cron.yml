@@ -1,0 +1,44 @@
+# Data pipeline: daily cleanup + compute_features for configured tickers.
+# See docs/GITHUB_ACTIONS_CRON_DATA_PIPELINE.md for setup and decisions.
+
+name: Data pipeline (cleanup + features)
+
+on:
+  schedule:
+    # 22:00 UTC daily (after US market close; data typically available)
+    - cron: '0 22 * * *'
+  workflow_dispatch:
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run cleanup, compute_features, and audit_data for each ticker
+        run: |
+          TICKERS="${{ vars.TICKERS }}"
+          if [ -z "$TICKERS" ]; then TICKERS="AAPL,MSFT, HOOG, GLXY"; fi
+          for ticker in $(echo "$TICKERS" | tr ',' ' '); do
+            ticker=$(echo "$ticker" | xargs)
+            [ -z "$ticker" ] && continue
+            echo "--- cleanup_data $ticker ---"
+            python -m scripts.cleanup_data --ticker "$ticker" --timeframe 1d --period 2y
+            echo "--- compute_features $ticker ---"
+            python -m scripts.compute_features --ticker "$ticker" --timeframe 1d
+            echo "--- audit_data $ticker ---"
+            python -m scripts.audit_data --ticker "$ticker"
+          done

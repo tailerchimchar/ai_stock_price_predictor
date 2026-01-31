@@ -166,7 +166,7 @@ npm run lint
 
 ## Data pipeline (audit, cleanup, features)
 
-The repo includes a **data quality and feature pipeline** you can run locally or in a container/scheduled job. See [docs/DATA_PIPELINE_DISCOVERY.md](docs/DATA_PIPELINE_DISCOVERY.md) for schema, issues, and migration plan.
+The repo includes a **data quality and feature pipeline** you can run locally or in a container/scheduled job. See [docs/DATA_PIPELINE_DISCOVERY.md](docs/DATA_PIPELINE_DISCOVERY.md) for schema, issues, and migration plan. For a plain-English explanation of what **audit_data**, **cleanup_data**, **compute_features** and the DB repos do and how they relate, see [docs/DATA_PIPELINE_SCRIPTS_AND_REPOS.md](docs/DATA_PIPELINE_SCRIPTS_AND_REPOS.md).
 
 ### Prerequisites
 
@@ -198,3 +198,4 @@ Scripts log to stdout. Use `-v` on audit for per-file details.
 - Run migrations once in Supabase.
 - Schedule cleanup and compute_features (e.g. daily) for desired tickers; same commands, ensure `SUPABASE_URL` and `SUPABASE_KEY` are set in the environment.
 - Re-running cleanup or compute_features is **idempotent**: same input produces the same DB state.
+- To run the pipeline on a schedule via **GitHub Actions** (cron), see [docs/GITHUB_ACTIONS_CRON_DATA_PIPELINE.md](docs/GITHUB_ACTIONS_CRON_DATA_PIPELINE.md) for setup, secrets, schedule rationale, and the workflow file (`.github/workflows/data-pipeline-cron.yml`).

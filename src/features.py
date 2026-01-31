@@ -18,18 +18,22 @@ from ta.volatility import AverageTrueRange, BollingerBands
 
 # Standard feature names
 FEATURE_RSI_14 = "rsi_14"
+FEATURE_RSI_28 = "rsi_28"
 FEATURE_SMA_5 = "sma_5"
 FEATURE_SMA_20 = "sma_20"
 FEATURE_SMA_100 = "sma_100"
 FEATURE_SMA_200 = "sma_200"
 FEATURE_ATR_14 = "atr_14"
 FEATURE_ADX_14 = "adx_14"
-FEATURE_BBANDS_20_2 = "bbands_20_2"  # middle band width; we store upper/middle/lower or just middle
+FEATURE_BBANDS_20_2 = "bbands_20_2"  # middle band
+FEATURE_BBANDS_UPPER = "bbands_upper"
+FEATURE_BBANDS_LOWER = "bbands_lower"
 FEATURE_MACD_12_26_9 = "macd_12_26_9"  # optional; store macd line value
 
 # Long MA fallback order when insufficient bars for 200
 LONG_MA_FALLBACK_WINDOWS = [200, 150, 100]
 MIN_BARS_RSI = 2
+MIN_BARS_RSI_28 = 29
 MIN_BARS_ADX = 28  # 2 * 14
 MIN_BARS_ATR = 14
 MIN_BARS_BB = 20
@@ -51,6 +55,11 @@ def _adaptive_long_sma(close: pd.Series) -> Tuple[pd.Series, int]:
 def compute_rsi_14(close: pd.Series) -> pd.Series:
     """RSI with window 14. Standard name: rsi_14."""
     return RSIIndicator(close=close, window=14).rsi()
+
+
+def compute_rsi_28(close: pd.Series) -> pd.Series:
+    """RSI with window 28. Standard name: rsi_28."""
+    return RSIIndicator(close=close, window=28).rsi()
 
 
 def compute_atr_14(high: pd.Series, low: pd.Series, close: pd.Series) -> pd.Series:
@@ -101,25 +110,33 @@ def compute_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     out[FEATURE_SMA_200] = long_sma
     meta["sma_long_window_used"] = long_w if long_w else None
 
-    # RSI 14
+    # RSI 14, RSI 28
     rsi = compute_rsi_14(close)
     out[FEATURE_RSI_14] = rsi
     meta["rsi_14_available_from_bar"] = MIN_BARS_RSI
+    out[FEATURE_RSI_28] = compute_rsi_28(close)
 
     # ATR 14
     atr = compute_atr_14(high, low, close)
     out[FEATURE_ATR_14] = atr
 
-    # ADX 14
-    adx = compute_adx_14(high, low, close)
-    out[FEATURE_ADX_14] = adx
+    # ADX 14 (needs at least MIN_BARS_ADX bars; ta library crashes on shorter series)
+    if len(close) >= MIN_BARS_ADX:
+        adx = compute_adx_14(high, low, close)
+        out[FEATURE_ADX_14] = adx
+    else:
+        out[FEATURE_ADX_14] = pd.Series(dtype=float, index=close.index)
 
-    # Bollinger middle (20, 2)
+    # Bollinger (20, 2): upper, middle, lower
     try:
-        _, bb_mid, _ = compute_bbands_20_2(close)
+        bb_upper, bb_mid, bb_lower = compute_bbands_20_2(close)
+        out[FEATURE_BBANDS_UPPER] = bb_upper
         out[FEATURE_BBANDS_20_2] = bb_mid
+        out[FEATURE_BBANDS_LOWER] = bb_lower
     except Exception:
+        out[FEATURE_BBANDS_UPPER] = pd.NA
         out[FEATURE_BBANDS_20_2] = pd.NA
+        out[FEATURE_BBANDS_LOWER] = pd.NA
 
     # MACD line (optional)
     try:
@@ -134,9 +151,12 @@ def compute_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, Any]]:
         FEATURE_SMA_100: 100,
         FEATURE_SMA_200: long_w or 200,
         FEATURE_RSI_14: 15,
+        FEATURE_RSI_28: MIN_BARS_RSI_28,
         FEATURE_ATR_14: 15,
         FEATURE_ADX_14: MIN_BARS_ADX,
         FEATURE_BBANDS_20_2: MIN_BARS_BB,
+        FEATURE_BBANDS_UPPER: MIN_BARS_BB,
+        FEATURE_BBANDS_LOWER: MIN_BARS_BB,
         FEATURE_MACD_12_26_9: MIN_BARS_MACD,
     }
     return out, meta
